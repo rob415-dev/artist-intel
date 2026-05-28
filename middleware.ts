@@ -29,11 +29,13 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Redirect unauthenticated users away from protected routes
+  // /demo is a public mock-data preview — no auth required
   const isProtected =
     !pathname.startsWith('/login') &&
     !pathname.startsWith('/auth') &&
     !pathname.startsWith('/_next') &&
-    !pathname.startsWith('/api')
+    !pathname.startsWith('/api') &&
+    pathname !== '/demo'
 
   if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone()

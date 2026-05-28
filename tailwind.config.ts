@@ -41,8 +41,8 @@ const config: Config = {
         'chart-3': '#C0C0C8',
       },
       fontFamily: {
-        sans: ['DM Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        mono: ['DM Mono', 'Fira Code', 'monospace'],
+        sans: ['var(--font-dm-sans)', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        mono: ['var(--font-dm-mono)', 'Fira Code', 'monospace'],
       },
       fontSize: {
         'xs': ['11px', { lineHeight: '16px' }],

@@ -7,7 +7,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine,
 } from 'recharts'
 
 const rawData = [
@@ -49,7 +48,9 @@ function formatRaw(key: string, val: number) {
   return val.toLocaleString()
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+type TooltipEntry = { dataKey: string; name: string; color: string; value: number; payload: Record<string, number> }
+
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipEntry[]; label?: string }) {
   if (!active || !payload?.length) return null
   const raw = payload[0]?.payload
   return (
@@ -58,7 +59,7 @@ function CustomTooltip({ active, payload, label }: any) {
       style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.12)', border: '0.5px solid rgba(0,0,0,0.07)' }}
     >
       <p className="col-header mb-1.5">{label}</p>
-      {payload.map((entry: any) => (
+      {payload.map((entry) => (
         <div key={entry.dataKey} className="flex items-center gap-2 leading-snug">
           <span
             className="w-1.5 h-1.5 rounded-full flex-shrink-0"

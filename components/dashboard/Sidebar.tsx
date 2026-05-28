@@ -12,13 +12,14 @@ import {
   Settings,
   ChevronDown,
   Radio,
+  type LucideIcon,
 } from 'lucide-react'
 
 const DEMO_ARTIST_ID = 'demo'
 
 type NavItem = {
   label: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
+  icon: LucideIcon
   href: string
   children?: { label: string; href: string }[]
 }

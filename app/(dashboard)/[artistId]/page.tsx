@@ -3,11 +3,7 @@ import { TrendChart } from '@/components/dashboard/TrendChart'
 import { TrackTable } from '@/components/dashboard/TrackTable'
 import { RightRail } from '@/components/dashboard/RightRail'
 
-export default function ArtistDashboard({
-  params,
-}: {
-  params: { artistId: string }
-}) {
+export default function ArtistDashboard() {
   return (
     <div className="flex gap-0 h-full">
       {/* Main content */}

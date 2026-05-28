@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-page-bg: #E8E8EA;
+    --color-app-bg: #F4F4F6;
+    --color-surface: #FFFFFF;
+    --color-surface-hover: #F9F9FA;
+    --color-border: rgba(0, 0, 0, 0.07);
+    --color-border-strong: rgba(0, 0, 0, 0.12);
+    --color-text-primary: #111111;
+    --color-text-secondary: #6B6B72;
+    --color-text-tertiary: #9B9BA4;
+    --color-accent: #E8442A;
+    --color-accent-light: #FDF0EE;
+    --color-accent-hover: #D13820;
+    --color-positive: #1A9E5C;
+    --color-positive-bg: #EAF7F0;
+    --color-negative: #9B9BA4;
+    --color-chart-1: #E8442A;
+    --color-chart-2: #5B8EE8;
+    --color-chart-3: #C0C0C8;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: #E8E8EA;
+    color: #111111;
+    font-size: 13px;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .col-header {
+    font-size: 11px;
+    font-weight: 500;
+    color: #9B9BA4;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 0.5px solid rgba(0, 0, 0, 0.07);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, #F0F0F2 25%, #E8E8EA 50%, #F0F0F2 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Badge variants */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badge-warning {
+  background: #FDF0EE;
+  color: #E8442A;
+}
+
+.badge-positive {
+  background: #EAF7F0;
+  color: #1A9E5C;
+}
+
+.badge-neutral {
+  background: #F0F0F2;
+  color: #6B6B72;
+}

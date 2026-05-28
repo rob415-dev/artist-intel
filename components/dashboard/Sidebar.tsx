@@ -59,7 +59,7 @@ const navItems: NavItem[] = [
   },
 ]
 
-export function Sidebar() {
+export function Sidebar({ userEmail }: { userEmail: string | null }) {
   const pathname = usePathname()
   const [expanded, setExpanded] = useState<string | null>('Pitches')
 
@@ -154,7 +154,7 @@ export function Sidebar() {
           <div className="w-7 h-7 rounded-full bg-app-bg flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-base font-medium text-text-primary truncate leading-tight">
-              My Account
+              {userEmail ?? 'My Account'}
             </p>
             <p className="text-sm text-text-tertiary truncate leading-tight">
               Free plan

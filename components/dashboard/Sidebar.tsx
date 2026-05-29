@@ -15,8 +15,6 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-const DEMO_ARTIST_ID = 'demo'
-
 type NavItem = {
   label: string
   icon: LucideIcon
@@ -24,44 +22,47 @@ type NavItem = {
   children?: { label: string; href: string }[]
 }
 
-const navItems: NavItem[] = [
-  {
-    label: 'Dashboard',
-    icon: LayoutGrid,
-    href: `/${DEMO_ARTIST_ID}`,
-  },
-  {
-    label: 'Pitches',
-    icon: Music2,
-    href: `/${DEMO_ARTIST_ID}/pitches`,
-    children: [
-      { label: 'New Pitch', href: `/${DEMO_ARTIST_ID}/pitches/new` },
-      { label: 'History', href: `/${DEMO_ARTIST_ID}/pitches` },
-    ],
-  },
-  {
-    label: 'Reports',
-    icon: FileText,
-    href: `/${DEMO_ARTIST_ID}/reports`,
-    children: [
-      { label: 'Send Report', href: `/${DEMO_ARTIST_ID}/reports` },
-    ],
-  },
-  {
-    label: 'Distribution',
-    icon: Send,
-    href: `/${DEMO_ARTIST_ID}/distribution`,
-  },
-  {
-    label: 'Settings',
-    icon: Settings,
-    href: '/settings',
-  },
-]
+function buildNavItems(artistId: string): NavItem[] {
+  return [
+    {
+      label: 'Dashboard',
+      icon: LayoutGrid,
+      href: `/${artistId}`,
+    },
+    {
+      label: 'Pitches',
+      icon: Music2,
+      href: `/${artistId}/pitches`,
+      children: [
+        { label: 'New Pitch', href: `/${artistId}/pitches/new` },
+        { label: 'History', href: `/${artistId}/pitches` },
+      ],
+    },
+    {
+      label: 'Reports',
+      icon: FileText,
+      href: `/${artistId}/reports`,
+      children: [
+        { label: 'Send Report', href: `/${artistId}/reports` },
+      ],
+    },
+    {
+      label: 'Distribution',
+      icon: Send,
+      href: `/${artistId}/distribution`,
+    },
+    {
+      label: 'Settings',
+      icon: Settings,
+      href: '/settings',
+    },
+  ]
+}
 
-export function Sidebar({ userEmail }: { userEmail: string | null }) {
+export function Sidebar({ userEmail, artistId }: { userEmail: string | null; artistId: string }) {
   const pathname = usePathname()
   const [expanded, setExpanded] = useState<string | null>('Pitches')
+  const navItems = buildNavItems(artistId)
 
   return (
     <aside className="w-[220px] flex-shrink-0 flex flex-col h-full bg-white px-3 py-4">

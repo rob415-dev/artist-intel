@@ -2,6 +2,32 @@
 
 import { useState } from 'react'
 
+type SpotifyStats = {
+  monthly_listeners: number | null
+  followers: number | null
+  saves_30d: number | null
+  playlist_adds_30d: number | null
+  artist_page_views: number | null
+  skip_rate: number | null
+  save_rate: number | null
+}
+
+type RightRailProps = {
+  stats: SpotifyStats | null
+  prevStats: SpotifyStats | null
+}
+
+function NullValue() {
+  return (
+    <span className="relative group inline-flex items-center">
+      <span className="text-[#9B9BA4]">—</span>
+      <span className="absolute left-1/2 -translate-x-1/2 -top-8 z-10 whitespace-nowrap px-2 py-1 rounded text-xs bg-[#111111] text-white opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none">
+        Available via Spotify for Artists
+      </span>
+    </span>
+  )
+}
+
 function DonutRing({ percent }: { percent: number }) {
   const r = 16
   const circ = 2 * Math.PI * r
@@ -28,6 +54,19 @@ function DonutRing({ percent }: { percent: number }) {
   )
 }
 
+function formatBig(v: number): string {
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`
+  if (v >= 1_000) return v.toLocaleString()
+  return v.toString()
+}
+
+function formatCount(v: number): string {
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+  if (v >= 1_000) return v.toLocaleString()
+  return v.toString()
+}
+
+// Mock bar data for the Apple Music panel (no schema source yet)
 const barData = [
   { day: '27', value: 60, active: false },
   { day: '28', value: 75, active: false },
@@ -40,9 +79,41 @@ const barData = [
 
 const timeOptions = ['7D', '30D', '3M']
 
-export function RightRail() {
+export function RightRail({ stats, prevStats }: RightRailProps) {
   const [timeframe, setTimeframe] = useState('7D')
   const [showDropdown, setShowDropdown] = useState(false)
+
+  const followersDelta =
+    stats?.followers != null && prevStats?.followers != null
+      ? stats.followers - prevStats.followers
+      : null
+
+  // save_rate is a percentage (e.g. 5.20 = 5.2%) — round for the donut label
+  const saveRatePct =
+    stats?.save_rate != null ? Math.round(Number(stats.save_rate)) : 0
+
+  const breakdownRows: { label: string; value: string | null }[] = [
+    {
+      label: 'Saves',
+      value: stats?.saves_30d != null ? formatCount(stats.saves_30d) : null,
+    },
+    {
+      label: 'Playlist Adds',
+      value:
+        stats?.playlist_adds_30d != null
+          ? stats.playlist_adds_30d.toLocaleString()
+          : null,
+    },
+    {
+      label: 'Artist Page Views',
+      value:
+        stats?.artist_page_views != null ? formatCount(stats.artist_page_views) : null,
+    },
+    {
+      label: 'Skip Rate',
+      value: stats?.skip_rate != null ? `${stats.skip_rate}%` : null,
+    },
+  ]
 
   return (
     <>
@@ -63,7 +134,13 @@ export function RightRail() {
               >
                 {timeframe}
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M2.5 4L5 6.5L7.5 4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </button>
               {showDropdown && (
@@ -71,7 +148,10 @@ export function RightRail() {
                   {timeOptions.map((opt) => (
                     <button
                       key={opt}
-                      onClick={() => { setTimeframe(opt); setShowDropdown(false) }}
+                      onClick={() => {
+                        setTimeframe(opt)
+                        setShowDropdown(false)
+                      }}
                       className="w-full px-3 py-1.5 text-sm text-left hover:bg-surface-hover text-text-secondary hover:text-text-primary"
                     >
                       {opt}
@@ -92,8 +172,25 @@ export function RightRail() {
         >
           <p className="col-header mb-1">Followers</p>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-semibold text-text-primary tabular-nums">48,300</span>
-            <span className="text-sm font-medium text-positive">+16</span>
+            {stats?.followers != null ? (
+              <>
+                <span className="text-xl font-semibold text-text-primary tabular-nums">
+                  {formatBig(stats.followers)}
+                </span>
+                {followersDelta != null && (
+                  <span
+                    className={`text-sm font-medium ${
+                      followersDelta >= 0 ? 'text-positive' : 'text-negative'
+                    }`}
+                  >
+                    {followersDelta >= 0 ? '+' : ''}
+                    {followersDelta.toLocaleString()}
+                  </span>
+                )}
+              </>
+            ) : (
+              <NullValue />
+            )}
           </div>
         </div>
 
@@ -102,31 +199,38 @@ export function RightRail() {
           <div>
             <p className="col-header mb-1">Monthly Listeners</p>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-semibold text-text-primary tabular-nums">1.28M</span>
+              {stats?.monthly_listeners != null ? (
+                <span className="text-lg font-semibold text-text-primary tabular-nums">
+                  {formatBig(stats.monthly_listeners)}
+                </span>
+              ) : (
+                <NullValue />
+              )}
             </div>
           </div>
-          <DonutRing percent={82} />
+          <DonutRing percent={saveRatePct} />
         </div>
 
         <div className="h-px bg-[rgba(0,0,0,0.07)] mb-3" />
 
-        {/* Breakdown */}
+        {/* Breakdown rows */}
         <div className="flex flex-col gap-2">
-          {[
-            { label: 'Saves', value: '62,140' },
-            { label: 'Playlist Adds', value: '312' },
-            { label: 'Artist Page Views', value: '28,500' },
-            { label: 'Skip Rate', value: '18.4%' },
-          ].map((row) => (
+          {breakdownRows.map((row) => (
             <div key={row.label} className="flex items-center justify-between">
               <span className="text-base text-text-secondary">{row.label}</span>
-              <span className="text-base text-text-primary tabular-nums font-medium">{row.value}</span>
+              {row.value != null ? (
+                <span className="text-base text-text-primary tabular-nums font-medium">
+                  {row.value}
+                </span>
+              ) : (
+                <NullValue />
+              )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Engagement Panel */}
+      {/* Apple Music Panel — no schema source, mock data retained */}
       <div
         className="bg-white rounded-xl border border-[rgba(0,0,0,0.07)] p-4"
         style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)' }}
@@ -166,8 +270,14 @@ export function RightRail() {
             <div key={row.label} className="flex items-center justify-between">
               <span className="text-base text-text-secondary">{row.label}</span>
               <div className="flex items-center gap-1.5">
-                <span className="text-base text-text-primary tabular-nums font-medium">{row.value}</span>
-                <span className={`text-sm font-medium ${row.positive ? 'text-positive' : 'text-negative'}`}>
+                <span className="text-base text-text-primary tabular-nums font-medium">
+                  {row.value}
+                </span>
+                <span
+                  className={`text-sm font-medium ${
+                    row.positive ? 'text-positive' : 'text-negative'
+                  }`}
+                >
                   {row.delta}
                 </span>
               </div>

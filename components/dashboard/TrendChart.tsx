@@ -9,48 +9,50 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
-const rawData = [
-  { month: 'JAN', listeners: 920000, streams: 3100000, followers: 39000 },
-  { month: 'FEB', listeners: 980000, streams: 3300000, followers: 40500 },
-  { month: 'MAR', listeners: 1050000, streams: 3500000, followers: 42000 },
-  { month: 'APR', listeners: 1010000, streams: 3400000, followers: 43200 },
-  { month: 'MAY', listeners: 1120000, streams: 3700000, followers: 44800 },
-  { month: 'JUN', listeners: 1090000, streams: 3600000, followers: 45500 },
-  { month: 'JUL', listeners: 1200000, streams: 3900000, followers: 46700 },
-  { month: 'AUG', listeners: 1180000, streams: 3800000, followers: 47100 },
-  { month: 'SEP', listeners: 1240000, streams: 4000000, followers: 47600 },
-  { month: 'OCT', listeners: 1220000, streams: 4100000, followers: 47900 },
-  { month: 'NOV', listeners: 1260000, streams: 4150000, followers: 48100 },
-  { month: 'DEC', listeners: 1284500, streams: 4200000, followers: 48300 },
-]
+type SpotifyStats = {
+  synced_at: string
+  monthly_listeners: number | null
+  streams_30d: number | null
+  followers: number | null
+}
 
-// Normalize to % change from first value so all three lines share the same Y axis
-const base = rawData[0]
-const chartData = rawData.map((d) => ({
-  month: d.month,
-  listeners: +((d.listeners / base.listeners - 1) * 100).toFixed(1),
-  streams: +((d.streams / base.streams - 1) * 100).toFixed(1),
-  followers: +((d.followers / base.followers - 1) * 100).toFixed(1),
-  // keep raw values for tooltip
-  _listeners: d.listeners,
-  _streams: d.streams,
-  _followers: d.followers,
-}))
+type TrendChartProps = {
+  history: SpotifyStats[]
+}
+
+function formatSyncDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
 
 function formatYAxis(value: number) {
   return `${value > 0 ? '+' : ''}${value}%`
 }
 
-function formatRaw(key: string, val: number) {
+function formatRaw(key: string, val: number | null) {
+  if (val == null) return '—'
   if (key === 'streams' || key === 'listeners') {
-    return val >= 1000000 ? `${(val / 1000000).toFixed(2)}M` : val.toLocaleString()
+    return val >= 1_000_000 ? `${(val / 1_000_000).toFixed(2)}M` : val.toLocaleString()
   }
   return val.toLocaleString()
 }
 
-type TooltipEntry = { dataKey: string; name: string; color: string; value: number; payload: Record<string, number> }
+type TooltipEntry = {
+  dataKey: string
+  name: string
+  color: string
+  value: number
+  payload: Record<string, number | null>
+}
 
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipEntry[]; label?: string }) {
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean
+  payload?: TooltipEntry[]
+  label?: string
+}) {
   if (!active || !payload?.length) return null
   const raw = payload[0]?.payload
   return (
@@ -67,7 +69,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
           />
           <span className="text-text-secondary">{entry.name}:</span>
           <span className="font-medium text-text-primary tabular-nums ml-auto pl-3">
-            {formatRaw(entry.dataKey, raw[`_${entry.dataKey}`])}
+            {formatRaw(entry.dataKey, raw[`_${entry.dataKey}`] as number | null)}
           </span>
         </div>
       ))}
@@ -75,7 +77,42 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   )
 }
 
-export function TrendChart() {
+function buildChartData(history: SpotifyStats[]) {
+  if (history.length === 0) return []
+
+  // Use first non-null value per series as the normalization base
+  const baseListeners =
+    history.find((r) => r.monthly_listeners != null)?.monthly_listeners ?? null
+  const baseStreams =
+    history.find((r) => r.streams_30d != null)?.streams_30d ?? null
+  const baseFollowers =
+    history.find((r) => r.followers != null)?.followers ?? null
+
+  return history.map((row) => ({
+    date: formatSyncDate(row.synced_at),
+    listeners:
+      baseListeners != null && row.monthly_listeners != null
+        ? +((row.monthly_listeners / baseListeners - 1) * 100).toFixed(1)
+        : null,
+    streams:
+      baseStreams != null && row.streams_30d != null
+        ? +((row.streams_30d / baseStreams - 1) * 100).toFixed(1)
+        : null,
+    followers:
+      baseFollowers != null && row.followers != null
+        ? +((row.followers / baseFollowers - 1) * 100).toFixed(1)
+        : null,
+    // raw values for tooltip
+    _listeners: row.monthly_listeners,
+    _streams: row.streams_30d,
+    _followers: row.followers,
+  }))
+}
+
+export function TrendChart({ history }: TrendChartProps) {
+  const chartData = buildChartData(history)
+  const isEmpty = chartData.length < 2
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -102,56 +139,76 @@ export function TrendChart() {
           <button className="text-sm text-text-secondary flex items-center gap-1 hover:text-text-primary transition-colors duration-150">
             3M
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M2.5 4L5 6.5L7.5 4"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </button>
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
-          <XAxis
-            dataKey="month"
-            tick={{ fontSize: 11, fill: '#9B9BA4' }}
-            tickLine={false}
-            axisLine={false}
-          />
-          <YAxis
-            tick={{ fontSize: 11, fill: '#9B9BA4' }}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={formatYAxis}
-          />
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(0,0,0,0.15)', strokeWidth: 1, strokeDasharray: '4 2' }} />
-          <Line
-            type="monotone"
-            dataKey="listeners"
-            name="Listeners"
-            stroke="#E8442A"
-            strokeWidth={1.5}
-            dot={false}
-            activeDot={{ r: 4, fill: 'white', stroke: '#E8442A', strokeWidth: 2 }}
-          />
-          <Line
-            type="monotone"
-            dataKey="streams"
-            name="Streams"
-            stroke="#5B8EE8"
-            strokeWidth={1.5}
-            dot={false}
-            activeDot={{ r: 4, fill: 'white', stroke: '#5B8EE8', strokeWidth: 2 }}
-          />
-          <Line
-            type="monotone"
-            dataKey="followers"
-            name="Followers"
-            stroke="#C0C0C8"
-            strokeWidth={1.5}
-            dot={false}
-            activeDot={{ r: 4, fill: 'white', stroke: '#C0C0C8', strokeWidth: 2 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      {isEmpty ? (
+        <div className="h-[180px] flex items-center justify-center">
+          <p className="text-sm text-[#9B9BA4]">
+            No trend data yet — sync again after your next update.
+          </p>
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 11, fill: '#9B9BA4' }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: '#9B9BA4' }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={formatYAxis}
+            />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ stroke: 'rgba(0,0,0,0.15)', strokeWidth: 1, strokeDasharray: '4 2' }}
+            />
+            <Line
+              type="monotone"
+              dataKey="listeners"
+              name="Listeners"
+              stroke="#E8442A"
+              strokeWidth={1.5}
+              dot={false}
+              connectNulls={false}
+              activeDot={{ r: 4, fill: 'white', stroke: '#E8442A', strokeWidth: 2 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="streams"
+              name="Streams"
+              stroke="#5B8EE8"
+              strokeWidth={1.5}
+              dot={false}
+              connectNulls={false}
+              activeDot={{ r: 4, fill: 'white', stroke: '#5B8EE8', strokeWidth: 2 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="followers"
+              name="Followers"
+              stroke="#C0C0C8"
+              strokeWidth={1.5}
+              dot={false}
+              connectNulls={false}
+              activeDot={{ r: 4, fill: 'white', stroke: '#C0C0C8', strokeWidth: 2 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
     </div>
   )
 }

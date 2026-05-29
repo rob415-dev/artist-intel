@@ -14,13 +14,25 @@ export default async function DashboardLayout({
     ? user.email[0].toUpperCase()
     : '?'
 
+  const { data: artist } = user
+    ? await supabase
+        .from('artists')
+        .select('id')
+        .eq('manager_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .single()
+    : { data: null }
+
+  const artistId = artist?.id ?? 'demo'
+
   return (
     <div className="min-h-screen bg-[#E8E8EA] p-4">
       <div
         className="flex h-[calc(100vh-32px)] rounded-xl overflow-hidden"
         style={{ boxShadow: '0 4px 32px rgba(0,0,0,0.08)' }}
       >
-        <Sidebar userEmail={user?.email ?? null} />
+        <Sidebar userEmail={user?.email ?? null} artistId={artistId} />
         <div className="flex-1 flex flex-col overflow-hidden bg-[#F4F4F6]">
           {/* Top bar */}
           <header className="flex items-center h-11 px-6 bg-[#F4F4F6] flex-shrink-0">

@@ -1,27 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { ChevronDown } from 'lucide-react'
 
-type Track = {
+type TrackRow = {
   id: string
   title: string
-  album: string
-  streams30d: string
-  listeners: string
-  saves: string
+  album: string | null
+  streams_30d: number | null
+  listeners_30d: number | null
+  saves_30d: number | null
+  save_rate: number | null
+  skip_rate: number | null
+  playlist_adds: number | null
   status: 'good' | 'review' | 'neutral'
-  isNew: boolean
+  created_at: string
 }
 
-const tracks: Track[] = [
-  { id: '1', title: 'Afterglow', album: 'Bloom EP', streams30d: '1.2M', listeners: '480K', saves: '62K', status: 'good', isNew: true },
-  { id: '2', title: 'Paper Walls', album: 'Bloom EP', streams30d: '890K', listeners: '310K', saves: '44K', status: 'review', isNew: true },
-  { id: '3', title: 'Coastline', album: 'Single', streams30d: '540K', listeners: '205K', saves: '28K', status: 'good', isNew: false },
-  { id: '4', title: 'Silver Hour', album: 'First Light', streams30d: '320K', listeners: '140K', saves: '18K', status: 'neutral', isNew: false },
-  { id: '5', title: 'Frequency', album: 'First Light', streams30d: '280K', listeners: '115K', saves: '14K', status: 'review', isNew: false },
-]
+type TrackTableProps = {
+  tracks: TrackRow[]
+}
 
 const statusConfig = {
   good: { label: 'GOOD', className: 'badge badge-positive' },
@@ -31,7 +30,30 @@ const statusConfig = {
 
 const tabs = ['Top Tracks', 'Pitch History', 'Playlists']
 
-export function TrackTable() {
+function formatCount(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+  if (value >= 1_000) return `${Math.round(value / 1_000)}K`
+  return value.toString()
+}
+
+function NullCell() {
+  return (
+    <span className="relative group inline-flex items-center">
+      <span className="text-[#9B9BA4]">—</span>
+      <span className="absolute left-1/2 -translate-x-1/2 -top-8 z-10 whitespace-nowrap px-2 py-1 rounded text-xs bg-[#111111] text-white opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none">
+        Available via Spotify for Artists
+      </span>
+    </span>
+  )
+}
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+
+function isNewTrack(createdAt: string): boolean {
+  return Date.now() - new Date(createdAt).getTime() < THIRTY_DAYS_MS
+}
+
+export function TrackTable({ tracks }: TrackTableProps) {
   const [activeTab, setActiveTab] = useState('Top Tracks')
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
 
@@ -60,7 +82,12 @@ export function TrackTable() {
         <div className="ml-auto">
           <button className="w-8 h-8 flex items-center justify-center text-text-tertiary hover:text-text-secondary transition-colors duration-150">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path
+                d="M2 4h12M4 8h8M6 12h4"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </div>
@@ -81,18 +108,25 @@ export function TrackTable() {
           </tr>
         </thead>
         <tbody>
+          {tracks.length === 0 && (
+            <tr>
+              <td colSpan={8} className="px-6 py-8 text-center text-sm text-[#9B9BA4]">
+                No tracks yet — sync Spotify to populate your track list.
+              </td>
+            </tr>
+          )}
           {tracks.map((track) => {
             const isExpanded = expandedRow === track.id
+            const isNew = isNewTrack(track.created_at)
             return (
-              <>
+              <Fragment key={track.id}>
                 <tr
-                  key={track.id}
                   className="cursor-pointer hover:bg-surface-hover transition-colors duration-150 group"
                   style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}
                   onClick={() => setExpandedRow(isExpanded ? null : track.id)}
                 >
                   <td className="px-6 py-0 w-8">
-                    {track.isNew && (
+                    {isNew && (
                       <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block" />
                     )}
                   </td>
@@ -100,16 +134,34 @@ export function TrackTable() {
                     <span className="text-base font-medium text-text-primary">{track.title}</span>
                   </td>
                   <td className="px-3 py-3">
-                    <span className="text-base text-text-secondary">{track.album}</span>
+                    <span className="text-base text-text-secondary">{track.album ?? '—'}</span>
                   </td>
                   <td className="px-3 py-3 text-right">
-                    <span className="text-base text-text-primary tabular-nums">{track.streams30d}</span>
+                    {track.streams_30d == null ? (
+                      <NullCell />
+                    ) : (
+                      <span className="text-base text-text-primary tabular-nums">
+                        {formatCount(track.streams_30d)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-3 text-right">
-                    <span className="text-base text-text-secondary tabular-nums">{track.listeners}</span>
+                    {track.listeners_30d == null ? (
+                      <NullCell />
+                    ) : (
+                      <span className="text-base text-text-secondary tabular-nums">
+                        {formatCount(track.listeners_30d)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-3 text-right">
-                    <span className="text-base text-text-secondary tabular-nums">{track.saves}</span>
+                    {track.saves_30d == null ? (
+                      <NullCell />
+                    ) : (
+                      <span className="text-base text-text-secondary tabular-nums">
+                        {formatCount(track.saves_30d)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-3 pr-6">
                     <span className={statusConfig[track.status].className}>
@@ -128,7 +180,7 @@ export function TrackTable() {
                 </tr>
 
                 {isExpanded && (
-                  <tr key={`${track.id}-expanded`}>
+                  <tr>
                     <td colSpan={8} className="px-6 pb-4">
                       <div
                         className="rounded-lg p-4 bg-[#F9F9FA]"
@@ -137,22 +189,30 @@ export function TrackTable() {
                         <div className="grid grid-cols-3 gap-4">
                           <div>
                             <p className="col-header mb-1">Save Rate</p>
-                            <p className="text-base font-medium text-text-primary tabular-nums">5.2%</p>
+                            <p className="text-base font-medium text-text-primary tabular-nums">
+                              {track.save_rate != null ? `${track.save_rate}%` : <NullCell />}
+                            </p>
                           </div>
                           <div>
                             <p className="col-header mb-1">Skip Rate</p>
-                            <p className="text-base font-medium text-text-primary tabular-nums">18.4%</p>
+                            <p className="text-base font-medium text-text-primary tabular-nums">
+                              {track.skip_rate != null ? `${track.skip_rate}%` : <NullCell />}
+                            </p>
                           </div>
                           <div>
                             <p className="col-header mb-1">Playlist Adds</p>
-                            <p className="text-base font-medium text-text-primary tabular-nums">312</p>
+                            <p className="text-base font-medium text-text-primary tabular-nums">
+                              {track.playlist_adds != null
+                                ? track.playlist_adds.toLocaleString()
+                                : <NullCell />}
+                            </p>
                           </div>
                         </div>
                       </div>
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             )
           })}
         </tbody>

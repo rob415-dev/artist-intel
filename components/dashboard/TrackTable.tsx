@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useState } from 'react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { ChevronDown } from 'lucide-react'
 
@@ -18,8 +19,37 @@ type TrackRow = {
   created_at: string
 }
 
+type PitchRow = {
+  id: string
+  title: string
+  pitch_type: string | null
+  target_label: string | null
+  status: 'draft' | 'review' | 'sent' | 'archived'
+  created_at: string
+}
+
 type TrackTableProps = {
   tracks: TrackRow[]
+  pitches: PitchRow[]
+  artistId: string
+}
+
+const PITCH_TYPE_LABELS: Record<string, string> = {
+  playlist: 'Playlist',
+  label: 'Label',
+  press: 'Press',
+  sync: 'Sync',
+}
+
+const PITCH_STATUS_CONFIG = {
+  draft:    { label: 'DRAFT',    className: 'badge badge-neutral' },
+  review:   { label: 'REVIEW',   className: 'badge badge-warning' },
+  sent:     { label: 'SENT',     className: 'badge badge-positive' },
+  archived: { label: 'ARCHIVED', className: 'badge badge-neutral' },
+}
+
+function formatPitchDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 const statusConfig = {
@@ -53,7 +83,7 @@ function isNewTrack(createdAt: string): boolean {
   return Date.now() - new Date(createdAt).getTime() < THIRTY_DAYS_MS
 }
 
-export function TrackTable({ tracks }: TrackTableProps) {
+export function TrackTable({ tracks, pitches, artistId }: TrackTableProps) {
   const [activeTab, setActiveTab] = useState('Top Tracks')
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
 
@@ -93,7 +123,71 @@ export function TrackTable({ tracks }: TrackTableProps) {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Pitch History tab content */}
+      {activeTab === 'Pitch History' && (
+        <div>
+          <table className="w-full" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+            <thead>
+              <tr>
+                <th className="col-header text-left px-6 py-3">Title</th>
+                <th className="col-header text-left px-3 py-3">Type</th>
+                <th className="col-header text-left px-3 py-3">Target</th>
+                <th className="col-header text-left px-3 py-3">Date</th>
+                <th className="col-header text-left px-3 py-3 pr-6">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pitches.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-[#9B9BA4]">
+                    No pitches yet.{' '}
+                    <Link
+                      href={`/${artistId}/pitches/new`}
+                      className="text-[#E8442A] hover:underline"
+                    >
+                      Generate your first pitch →
+                    </Link>
+                  </td>
+                </tr>
+              )}
+              {pitches.map((pitch) => {
+                const status = (pitch.status ?? 'draft') as keyof typeof PITCH_STATUS_CONFIG
+                const cfg = PITCH_STATUS_CONFIG[status] ?? PITCH_STATUS_CONFIG.draft
+                return (
+                  <tr
+                    key={pitch.id}
+                    className="hover:bg-surface-hover transition-colors duration-150"
+                    style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}
+                  >
+                    <td className="px-6 py-3">
+                      <span className="text-base font-medium text-text-primary">{pitch.title}</span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="text-base text-text-secondary">
+                        {pitch.pitch_type ? PITCH_TYPE_LABELS[pitch.pitch_type] ?? pitch.pitch_type : '—'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="text-base text-text-secondary">{pitch.target_label ?? '—'}</span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="text-base text-text-tertiary tabular-nums">
+                        {formatPitchDate(pitch.created_at)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 pr-6">
+                      <span className={cfg.className}>{cfg.label}</span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Top Tracks table */}
+      {activeTab === 'Top Tracks' && (
       <table className="w-full" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
         <thead>
           <tr>
@@ -217,6 +311,7 @@ export function TrackTable({ tracks }: TrackTableProps) {
           })}
         </tbody>
       </table>
+      )}
     </div>
   )
 }

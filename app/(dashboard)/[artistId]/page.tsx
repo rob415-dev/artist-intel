@@ -5,6 +5,7 @@ import { TrackTable } from '@/components/dashboard/TrackTable'
 import { RightRail } from '@/components/dashboard/RightRail'
 import { ConnectSpotify } from '@/components/dashboard/ConnectSpotify'
 import { SyncButton } from '@/components/dashboard/SyncButton'
+import Link from 'next/link'
 
 export type SpotifyStats = {
   id: string
@@ -34,6 +35,15 @@ export type TrackRow = {
   created_at: string
 }
 
+export type PitchRow = {
+  id: string
+  title: string
+  pitch_type: string | null
+  target_label: string | null
+  status: 'draft' | 'review' | 'sent' | 'archived'
+  created_at: string
+}
+
 async function getArtistAndConnection(artistId: string) {
   if (artistId === 'demo') return { artist: null, connected: false }
 
@@ -60,14 +70,15 @@ async function getDashboardData(artistId: string): Promise<{
   prevStats: SpotifyStats | null
   history: SpotifyStats[]
   tracks: TrackRow[]
+  pitches: PitchRow[]
 }> {
   if (artistId === 'demo') {
-    return { stats: null, prevStats: null, history: [], tracks: [] }
+    return { stats: null, prevStats: null, history: [], tracks: [], pitches: [] }
   }
 
   const supabase = createClient()
 
-  const [{ data: rawHistory }, { data: rawTracks }] = await Promise.all([
+  const [{ data: rawHistory }, { data: rawTracks }, { data: rawPitches }] = await Promise.all([
     supabase
       .from('spotify_stats')
       .select(
@@ -84,6 +95,12 @@ async function getDashboardData(artistId: string): Promise<{
       .eq('artist_id', artistId)
       .order('streams_30d', { ascending: false, nullsFirst: false })
       .limit(20),
+    supabase
+      .from('pitches')
+      .select('id, title, pitch_type, target_label, status, created_at')
+      .eq('artist_id', artistId)
+      .order('created_at', { ascending: false })
+      .limit(20),
   ])
 
   // rawHistory comes back newest-first; reverse to chronological for the chart
@@ -96,6 +113,7 @@ async function getDashboardData(artistId: string): Promise<{
     prevStats,
     history,
     tracks: (rawTracks ?? []) as TrackRow[],
+    pitches: (rawPitches ?? []) as PitchRow[],
   }
 }
 
@@ -106,7 +124,7 @@ export default async function ArtistDashboard({
   params: { artistId: string }
   searchParams: { spotify_error?: string }
 }) {
-  const [{ artist, connected }, { stats, prevStats, history, tracks }] = await Promise.all([
+  const [{ artist, connected }, { stats, prevStats, history, tracks, pitches }] = await Promise.all([
     getArtistAndConnection(params.artistId),
     getDashboardData(params.artistId),
   ])
@@ -130,9 +148,12 @@ export default async function ArtistDashboard({
           </div>
           <div className="flex items-center gap-2">
             {connected && <SyncButton artistId={params.artistId} />}
-            <button className="h-8 px-4 rounded-lg bg-[#E8442A] text-white text-[13px] font-medium hover:bg-[#D13820] active:bg-[#C03218] transition-colors duration-150 flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8442A] focus-visible:ring-offset-2">
+            <Link
+              href={`/${params.artistId}/pitches/new`}
+              className="h-8 px-4 rounded-lg bg-[#E8442A] text-white text-[13px] font-medium hover:bg-[#D13820] active:bg-[#C03218] transition-colors duration-150 inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8442A] focus-visible:ring-offset-2"
+            >
               New Pitch
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -156,7 +177,7 @@ export default async function ArtistDashboard({
           className="bg-white rounded-xl border border-[rgba(0,0,0,0.07)]"
           style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)' }}
         >
-          <TrackTable tracks={tracks} />
+          <TrackTable tracks={tracks} pitches={pitches} artistId={params.artistId} />
         </div>
       </div>
 
